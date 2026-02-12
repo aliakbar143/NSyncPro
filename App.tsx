@@ -6,7 +6,8 @@ import Navbar from './components/Navbar';
 import ProductGrid from './components/ProductGrid';
 import Dashboard from './views/Dashboard';
 import MarketingAssistant from './views/MarketingAssistant';
-import { Layout, Loader2, RefreshCw, AlertCircle, CheckCircle, Globe } from 'lucide-react';
+import ImportModal from './components/ImportModal';
+import { Layout, Loader2, RefreshCw, AlertCircle, CheckCircle, Globe, UploadCloud } from 'lucide-react';
 
 const MOCK_ANALYTICS: AnalyticsData[] = [
   { date: 'Mon', visitors: 120, clicks: 15, sales: 2 },
@@ -25,6 +26,7 @@ const App: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(true);
   const [lastSync, setLastSync] = useState<string>('Pending...');
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
   useEffect(() => {
     loadProducts();
@@ -35,31 +37,45 @@ const App: React.FC = () => {
     setError(null);
     try {
       const data = await NoonApiService.getProducts();
+      // Only set products if we got valid API data, otherwise we might rely on fallback
       setProducts(data);
       setLastSync(new Date().toLocaleTimeString());
     } catch (err: any) {
       console.error("App: Load products failed", err);
-      // Even if failed, we might have mock data from the service fallback, 
-      // but if the service threw a hard error, catch it here.
       setError(err.message || 'Failed to sync with Noon Store.');
     } finally {
       setIsLoading(false);
     }
   };
 
+  const handleManualImport = (importedProducts: Product[]) => {
+    setProducts(importedProducts);
+    setLastSync('Manual Import: ' + new Date().toLocaleTimeString());
+    setError(null); // Clear any API errors since we now have data
+  };
+
   const renderView = () => {
+    // Show empty state only if we have NO products and NO loading state
     if (products.length === 0 && !isLoading && !error) {
       return (
         <div className="flex flex-col items-center justify-center py-20 text-center animate-fade-in">
           <AlertCircle className="w-12 h-12 text-gray-400 mb-4" />
           <h2 className="text-xl font-bold text-gray-900">No Active Products Found</h2>
-          <p className="text-gray-500 max-w-md mt-2">We connected to your Noon store but couldn't find any products listed publicly right now.</p>
-          <button 
-            onClick={loadProducts}
-            className="mt-6 px-6 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-200"
-          >
-            Force Refresh
-          </button>
+          <p className="text-gray-500 max-w-md mt-2">We connected to your Noon store but couldn't find any products listed publicly.</p>
+          <div className="flex gap-4 mt-6">
+            <button 
+              onClick={loadProducts}
+              className="px-6 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors"
+            >
+              Retry Sync
+            </button>
+            <button 
+              onClick={() => setIsImportModalOpen(true)}
+              className="px-6 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-200"
+            >
+              Import via Extension
+            </button>
+          </div>
         </div>
       );
     }
@@ -104,7 +120,14 @@ const App: React.FC = () => {
       <Navbar 
         currentView={currentView} 
         onNavigate={setCurrentView} 
-        isAdmin={isAdmin} 
+        isAdmin={isAdmin}
+        onOpenImport={() => setIsImportModalOpen(true)} 
+      />
+
+      <ImportModal 
+        isOpen={isImportModalOpen} 
+        onClose={() => setIsImportModalOpen(false)} 
+        onImport={handleManualImport} 
       />
 
       <main className="flex-grow pt-8 pb-16">
@@ -117,17 +140,30 @@ const App: React.FC = () => {
                 <p className="text-sm text-gray-500">Fetching live data from seller profile p-476641</p>
               </div>
             </div>
-          ) : error ? (
+          ) : error && products.length === 0 ? (
              <div className="bg-red-50 border border-red-200 rounded-2xl p-8 text-center max-w-2xl mx-auto my-10 animate-fade-in shadow-sm">
                 <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
                 <h2 className="text-xl font-bold text-red-900">Sync Issue Detected</h2>
-                <p className="text-red-700 mt-2 mb-6 font-medium">{error}</p>
-                <button 
-                  onClick={loadProducts}
-                  className="px-8 py-3 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 transition-all shadow-lg shadow-red-200"
-                >
-                  Retry Connection
-                </button>
+                <p className="text-red-700 mt-2 mb-6 font-medium">
+                  {error === 'Failed to sync with Noon Store.' ? 'The Noon.com firewall blocked our direct connection.' : error}
+                </p>
+                
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+                  <button 
+                    onClick={loadProducts}
+                    className="px-6 py-2 bg-white border border-red-200 text-red-700 rounded-xl font-bold hover:bg-red-50 transition-all"
+                  >
+                    Retry Connection
+                  </button>
+                  <div className="text-gray-400 font-medium">OR</div>
+                  <button 
+                    onClick={() => setIsImportModalOpen(true)}
+                    className="px-6 py-2 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 transition-all shadow-lg shadow-red-200 flex items-center"
+                  >
+                    <UploadCloud className="w-4 h-4 mr-2" />
+                    Use Chrome Extension
+                  </button>
+                </div>
              </div>
           ) : (
             renderView()

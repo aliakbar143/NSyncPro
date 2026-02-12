@@ -1,0 +1,31 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { width: 300px; padding: 15px; font-family: sans-serif; }
+    h2 { margin-top: 0; color: #333; font-size: 18px; }
+    p { font-size: 13px; color: #666; }
+    button {
+      width: 100%;
+      padding: 10px;
+      background: #EAB308; /* Yellow-500 */
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+      margin-top: 10px;
+    }
+    button:hover { background: #CA8A04; }
+    .status { margin-top: 10px; font-size: 12px; text-align: center; }
+  </style>
+</head>
+<body>
+  <h2>NoonSync Helper</h2>
+  <p>Navigate to your Noon Seller Profile or Product Page, then click below.</p>
+  <button id="scrapeBtn">Extract & Copy Data</button>
+  <div id="status" class="status"></div>
+  <script src="popup.js"></script>
+</body>
+</html>

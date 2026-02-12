@@ -1,0 +1,13 @@
+
+{
+  "manifest_version": 3,
+  "name": "NoonSync Helper",
+  "version": "1.0",
+  "description": "Extract product data from Noon.com for NoonSync Pro",
+  "permissions": ["activeTab", "scripting"],
+  "host_permissions": ["*://*.noon.com/*"],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Extract Noon Data"
+  }
+}

@@ -1,15 +1,16 @@
 
 import React from 'react';
 import { ViewMode } from '../types';
-import { Store, ShieldCheck, User, ExternalLink } from 'lucide-react';
+import { Store, ShieldCheck, User, ExternalLink, UploadCloud } from 'lucide-react';
 
 interface NavbarProps {
   currentView: ViewMode;
   onNavigate: (view: ViewMode) => void;
   isAdmin: boolean;
+  onOpenImport?: () => void;
 }
 
-const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate, isAdmin }) => {
+const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate, isAdmin, onOpenImport }) => {
   return (
     <nav className="sticky top-0 z-50 bg-white border-b border-gray-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -53,14 +54,23 @@ const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate, isAdmin }) => 
           </div>
           
           <div className="flex items-center space-x-4">
+            {onOpenImport && (
+              <button 
+                onClick={onOpenImport}
+                className="hidden md:flex items-center px-3 py-1.5 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-lg text-xs font-bold hover:bg-indigo-100 transition-colors"
+              >
+                <UploadCloud className="w-3 h-3 mr-1.5" />
+                Import Data
+              </button>
+            )}
             <a 
               href="https://www.noon.com/uae-en/p-476641/" 
               target="_blank" 
               rel="noreferrer"
-              className="hidden md:flex items-center px-3 py-1 bg-green-50 text-green-700 border border-green-200 rounded-full text-xs font-medium hover:bg-green-100 transition-colors"
+              className="hidden md:flex items-center px-3 py-1.5 bg-green-50 text-green-700 border border-green-200 rounded-full text-xs font-medium hover:bg-green-100 transition-colors"
             >
               <ShieldCheck className="w-3 h-3 mr-1" />
-              Store Connected
+              Store
               <ExternalLink className="w-3 h-3 ml-1" />
             </a>
             <button className="p-2 text-gray-400 hover:text-gray-500">
