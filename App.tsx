@@ -6,7 +6,7 @@ import Navbar from './components/Navbar';
 import ProductGrid from './components/ProductGrid';
 import Dashboard from './views/Dashboard';
 import MarketingAssistant from './views/MarketingAssistant';
-import { Layout, Shield, Loader2, RefreshCw } from 'lucide-react';
+import { Layout, Shield, Loader2, RefreshCw, AlertCircle } from 'lucide-react';
 
 const MOCK_ANALYTICS: AnalyticsData[] = [
   { date: 'Mon', visitors: 120, clicks: 15, sales: 2 },
@@ -22,7 +22,8 @@ const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<ViewMode>(ViewMode.STOREFRONT);
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isAdmin, setIsAdmin] = useState(true); // Default to admin for demo purposes
+  const [error, setError] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState(true);
   const [lastSync, setLastSync] = useState<string>(new Date().toLocaleTimeString());
 
   useEffect(() => {
@@ -31,18 +32,35 @@ const App: React.FC = () => {
 
   const loadProducts = async () => {
     setIsLoading(true);
+    setError(null);
     try {
       const data = await NoonApiService.getProducts();
       setProducts(data);
       setLastSync(new Date().toLocaleTimeString());
-    } catch (error) {
-      console.error('Failed to load products:', error);
+    } catch (err: any) {
+      setError(err.message || 'Failed to connect to Noon API');
     } finally {
       setIsLoading(false);
     }
   };
 
   const renderView = () => {
+    if (products.length === 0 && !isLoading && !error) {
+      return (
+        <div className="flex flex-col items-center justify-center py-20 text-center">
+          <AlertCircle className="w-12 h-12 text-gray-400 mb-4" />
+          <h2 className="text-xl font-bold text-gray-900">No Products Found</h2>
+          <p className="text-gray-500 max-w-md mt-2">Your Noon account is connected, but we couldn't find any active items in your catalog. Ensure your products are "Live" on Noon.</p>
+          <button 
+            onClick={loadProducts}
+            className="mt-6 px-6 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors"
+          >
+            Try Syncing Again
+          </button>
+        </div>
+      );
+    }
+
     switch (currentView) {
       case ViewMode.STOREFRONT:
         return (
@@ -92,6 +110,21 @@ const App: React.FC = () => {
               <Loader2 className="w-12 h-12 text-indigo-600 animate-spin" />
               <p className="text-gray-500 font-medium">Synchronizing with Noon Seller API...</p>
             </div>
+          ) : error ? (
+             <div className="bg-red-50 border border-red-200 rounded-2xl p-8 text-center max-w-2xl mx-auto my-20">
+                <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+                <h2 className="text-xl font-bold text-red-900">API Connection Error</h2>
+                <p className="text-red-700 mt-2 mb-6">{error}</p>
+                <div className="text-left bg-white p-4 rounded-xl border border-red-100 text-sm text-gray-600 mb-6">
+                  <strong>Layman Tip:</strong> Check your Vercel Environment Variables. Ensure <code>NOON_APP_ID</code> matches your Key ID and <code>NOON_APP_KEY</code> is your Secret Key string.
+                </div>
+                <button 
+                  onClick={loadProducts}
+                  className="px-8 py-3 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 transition-colors"
+                >
+                  Retry Connection
+                </button>
+             </div>
           ) : (
             renderView()
           )}
@@ -110,7 +143,7 @@ const App: React.FC = () => {
           <div className="flex items-center justify-center space-x-6">
             <span className="text-xs text-gray-400 font-medium">Last Sync: {lastSync}</span>
             <div className="h-1 w-1 bg-gray-300 rounded-full"></div>
-            <span className="text-xs text-gray-400 font-medium uppercase">API Status: Healthy</span>
+            <span className="text-xs text-gray-400 font-medium uppercase">API Status: {error ? 'Offline' : 'Healthy'}</span>
           </div>
         </div>
       </footer>

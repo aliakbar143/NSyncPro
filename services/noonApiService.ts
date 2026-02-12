@@ -1,14 +1,12 @@
 
 import { Product } from '../types';
 
-// In a real application, this would fetch from the Noon.com Seller API endpoints.
-// Documentation for real integration: https://api.noon.com/seller/v1/
 export class NoonApiService {
   private static MOCK_PRODUCTS: Product[] = [
     {
       id: '1',
       sku: 'NOON-001',
-      name: 'Ultra-HD Smart Camera Pro',
+      name: 'Ultra-HD Smart Camera Pro (Mock)',
       description: '4K Resolution, Night Vision, and AI motion detection for home security.',
       price: 299.00,
       currency: 'AED',
@@ -23,7 +21,7 @@ export class NoonApiService {
     {
       id: '2',
       sku: 'NOON-002',
-      name: 'Ergonomic Mesh Office Chair',
+      name: 'Ergonomic Mesh Office Chair (Mock)',
       description: 'High-back desk chair with lumbar support and adjustable armrests.',
       price: 549.00,
       currency: 'AED',
@@ -38,7 +36,7 @@ export class NoonApiService {
     {
       id: '3',
       sku: 'NOON-003',
-      name: 'Wireless Noise Cancelling Earbuds',
+      name: 'Wireless Noise Cancelling Earbuds (Mock)',
       description: 'Crystal clear sound with active noise cancellation and 24-hour battery life.',
       price: 199.00,
       currency: 'AED',
@@ -53,16 +51,30 @@ export class NoonApiService {
   ];
 
   static async getProducts(): Promise<Product[]> {
-    // Simulate API latency
-    await new Promise(resolve => setTimeout(resolve, 800));
-    return [...this.MOCK_PRODUCTS];
+    try {
+      // Attempt to fetch from the secure backend proxy
+      const response = await fetch('/api/products');
+      
+      if (!response.ok) {
+        throw new Error(`Proxy responded with status ${response.status}`);
+      }
+      
+      const products = await response.json();
+      console.log('Successfully synced live products from Noon API');
+      return products;
+    } catch (error) {
+      // Graceful fallback to mock data if API is not configured or fails
+      console.warn('Noon API sync failed. Showing fallback data. Check Vercel Env Vars.', error);
+      return [...this.MOCK_PRODUCTS];
+    }
   }
 
   static async updateProduct(id: string, updates: Partial<Product>): Promise<Product> {
     await new Promise(resolve => setTimeout(resolve, 500));
-    const index = this.MOCK_PRODUCTS.findIndex(p => p.id === id);
+    // Implementation for local update logic
+    const products = await this.getProducts();
+    const index = products.findIndex(p => p.id === id);
     if (index === -1) throw new Error('Product not found');
-    this.MOCK_PRODUCTS[index] = { ...this.MOCK_PRODUCTS[index], ...updates };
-    return this.MOCK_PRODUCTS[index];
+    return { ...products[index], ...updates };
   }
 }
