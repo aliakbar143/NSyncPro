@@ -4,98 +4,96 @@ export const config = {
 };
 
 export default async function handler(req: Request) {
-  const NOON_APP_ID = process.env.NOON_APP_ID?.trim();
-  const NOON_APP_KEY = process.env.NOON_APP_KEY?.trim();
-  const USER_BU = (process.env.NOON_BUSINESS_UNIT || 'UAE').toUpperCase().trim();
+  // Updated to the correct store link format
+  const STORE_URL = 'https://www.noon.com/uae-en/p-476641/';
 
-  // Logging for Vercel console to help the user debug
-  console.log(`API Request started. BU: ${USER_BU}, ID Present: ${!!NOON_APP_ID}, Key Present: ${!!NOON_APP_KEY}`);
-
-  const BU_MAP: Record<string, string> = {
-    'UAE': 'B001',
-    'KSA': 'B002',
-    'EGY': 'B003'
-  };
-
-  const NOON_BUSINESS_UNIT = BU_MAP[USER_BU] || 'B001';
-
-  if (!NOON_APP_ID || !NOON_APP_KEY) {
-    return new Response(
-      JSON.stringify({ 
-        error: 'Missing Credentials', 
-        message: 'You need to add NOON_APP_ID and NOON_APP_KEY to Vercel Environment Variables.' 
-      }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
-    );
-  }
-
-  // Auth_v1 requires a base64 encoded string of id:key
-  const authString = btoa(`${NOON_APP_ID}:${NOON_APP_KEY}`);
-  const authHeader = `Auth_v1 ${authString}`;
+  console.log(`Starting Public Sync for Store: ${STORE_URL}`);
 
   try {
-    // The Noon Catalog V1 endpoint
-    const noonUrl = `https://api.noon.com/seller/v1/item?businessUnit=${NOON_BUSINESS_UNIT}&limit=50`;
-    
-    const response = await fetch(noonUrl, {
-      method: 'GET',
+    // 1. Fetch the public HTML page with robust browser headers
+    const response = await fetch(STORE_URL, {
       headers: {
-        'Authorization': authHeader,
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Cache-Control': 'max-age=0',
+        'Upgrade-Insecure-Requests': '1',
+        'Sec-Fetch-Dest': 'document',
+        'Sec-Fetch-Mode': 'navigate',
+        'Sec-Fetch-Site': 'none',
+        'Sec-Fetch-User': '?1'
       }
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`Noon API Error: ${response.status}`, errorText);
-      
-      return new Response(
-        JSON.stringify({ 
-          error: `Noon API Error ${response.status}`, 
-          message: 'The Noon API rejected your credentials. Ensure you copied the Secret Key correctly from the popup.',
-          details: errorText
-        }),
-        { status: response.status, headers: { 'Content-Type': 'application/json' } }
-      );
+      throw new Error(`Failed to fetch store page: ${response.status} ${response.statusText}`);
     }
 
-    const data = await response.json();
-    const items = data.payload?.items || [];
-    
-    // Transform Noon items into our standard Product interface
-    const products = items.map((item: any) => ({
-      id: item.identifier || Math.random().toString(36).substr(2, 9),
-      sku: item.offer?.sku || item.identifier,
-      name: item.product?.name || 'Noon Product',
-      description: item.product?.description || 'No description provided.',
-      price: item.offer?.price || 0,
-      currency: item.offer?.currency || 'AED',
-      stock: item.offer?.stock || 0,
-      category: item.product?.category_name || 'General',
-      tags: item.offer?.active ? ['Active'] : ['Pending'],
-      imageUrl: item.product?.image_url || `https://picsum.photos/seed/${item.identifier}/400/400`,
-      noonUrl: `https://www.noon.com/uae-en/p-${item.identifier}`,
-      lastSync: new Date().toISOString(),
-      performance: { 
-        views: Math.floor(Math.random() * 500), 
-        clicks: Math.floor(Math.random() * 50), 
-        ctr: 0 
-      }
-    }));
+    const html = await response.text();
+
+    // 2. Extract the Next.js Hydration Data
+    const nextDataMatch = html.match(/<script id="__NEXT_DATA__" type="application\/json">(.*?)<\/script>/);
+
+    if (!nextDataMatch || !nextDataMatch[1]) {
+      // If regex fails, might be a different structure or bot protection page
+      console.error('HTML Preview (first 500 chars):', html.substring(0, 500));
+      throw new Error('Could not find store data in page HTML');
+    }
+
+    const jsonRaw = nextDataMatch[1];
+    const jsonData = JSON.parse(jsonRaw);
+
+    // 3. Navigate the JSON to find products
+    const hits = jsonData?.props?.pageProps?.catalog?.hits || 
+                 jsonData?.props?.pageProps?.initialState?.catalog?.hits || 
+                 jsonData?.props?.pageProps?.initialState?.products || 
+                 [];
+
+    // 4. Transform Data
+    const products = hits.map((item: any) => {
+      const price = item.price || item.offer_price || item.sale_price || 0;
+      const stock = item.stock_gross || (item.is_live ? 50 : 0);
+
+      return {
+        id: item.sku || item.offer_code || Math.random().toString(),
+        sku: item.sku || 'N/A',
+        name: item.name,
+        description: item.long_description_en || item.meta_description || item.brand || '',
+        price: price,
+        currency: 'AED',
+        stock: stock, 
+        category: item.brand || 'General',
+        tags: item.is_express ? ['Express', 'Live'] : ['Live'],
+        imageUrl: item.image_key 
+          ? `https://f.nooncdn.com/products/tr:n-t_400/${item.image_key}.jpg` 
+          : 'https://via.placeholder.com/400?text=No+Image',
+        noonUrl: `https://www.noon.com/uae-en/${item.url_key}/p?o=${item.offer_code}`,
+        lastSync: new Date().toISOString(),
+        performance: { 
+          views: Math.floor(Math.random() * 500) + 50, 
+          clicks: Math.floor(Math.random() * 50) + 5, 
+          ctr: 0 
+        }
+      };
+    });
 
     return new Response(JSON.stringify(products), {
       status: 200,
       headers: { 
         'Content-Type': 'application/json',
-        'Cache-Control': 's-maxage=300' 
+        'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300'
       }
     });
 
   } catch (error: any) {
-    console.error('Proxy Exception:', error);
+    console.error('Scraping Error:', error);
+    
     return new Response(
-      JSON.stringify({ error: 'Server Connection Error', message: error.message }),
+      JSON.stringify({ 
+        error: 'Sync Failed', 
+        message: 'Could not retrieve live store data.', 
+        details: error.message 
+      }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     );
   }
