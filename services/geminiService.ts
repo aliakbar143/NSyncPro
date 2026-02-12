@@ -1,9 +1,20 @@
 
-import { GoogleGenAI, Type } from "@google/genai";
+import { GoogleGenAI } from "@google/genai";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// Helper to get the AI instance safely
+const getAIClient = () => {
+  const apiKey = process.env.API_KEY;
+  if (!apiKey) {
+    console.warn("Gemini API Key is missing.");
+    return null;
+  }
+  return new GoogleGenAI({ apiKey });
+};
 
 export async function generateMarketingContent(productName: string, productDescription: string, platform: 'X' | 'Instagram' | 'Facebook' | 'Email') {
+  const ai = getAIClient();
+  if (!ai) return "Error: API Key missing. Please configure NOON_API_KEY in Vercel.";
+
   const prompt = `Act as an expert digital marketer for an e-commerce brand selling on Noon.com. 
   Create a high-converting ${platform} post for the following product:
   Product Name: ${productName}
@@ -32,6 +43,9 @@ export async function generateMarketingContent(productName: string, productDescr
 }
 
 export async function suggestPromotionStrategy(productName: string, stockLevel: number) {
+  const ai = getAIClient();
+  if (!ai) return "Error: API Key missing.";
+
   const prompt = `Suggest a marketing promotion strategy for "${productName}" which currently has ${stockLevel} units in stock. 
   The goal is to optimize ROI while managing inventory. Suggest 3 clear steps.`;
 

@@ -5,11 +5,10 @@ import react from '@vitejs/plugin-react';
 export default defineConfig({
   plugins: [react()],
   define: {
-    // Safely expose specific env vars to the client-side code
-    // This allows services/geminiService.ts to access process.env.API_KEY
-    'process.env.API_KEY': JSON.stringify(process.env.API_KEY),
-    'process.env.NOON_BUSINESS_UNIT': JSON.stringify(process.env.NOON_BUSINESS_UNIT),
-    'process.env.NOON_APP_ID': JSON.stringify(process.env.NOON_APP_ID)
+    // Safely expose specific env vars to the client-side code with fallbacks
+    'process.env.API_KEY': JSON.stringify(process.env.API_KEY || ''),
+    'process.env.NOON_BUSINESS_UNIT': JSON.stringify(process.env.NOON_BUSINESS_UNIT || ''),
+    'process.env.NOON_APP_ID': JSON.stringify(process.env.NOON_APP_ID || '')
   },
   server: {
     proxy: {

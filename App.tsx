@@ -1,12 +1,12 @@
 
 import React, { useState, useEffect } from 'react';
-import { Product, ViewMode, AnalyticsData } from './types.ts';
-import { NoonApiService } from './services/noonApiService.ts';
-import Navbar from './components/Navbar.tsx';
-import ProductGrid from './components/ProductGrid.tsx';
-import Dashboard from './views/Dashboard.tsx';
-import MarketingAssistant from './views/MarketingAssistant.tsx';
-import { Layout, Shield, Loader2, RefreshCw, AlertCircle, CheckCircle } from 'lucide-react';
+import { Product, ViewMode, AnalyticsData } from './types';
+import { NoonApiService } from './services/noonApiService';
+import Navbar from './components/Navbar';
+import ProductGrid from './components/ProductGrid';
+import Dashboard from './views/Dashboard';
+import MarketingAssistant from './views/MarketingAssistant';
+import { Layout, Loader2, RefreshCw, AlertCircle, CheckCircle } from 'lucide-react';
 
 const MOCK_ANALYTICS: AnalyticsData[] = [
   { date: 'Mon', visitors: 120, clicks: 15, sales: 2 },
