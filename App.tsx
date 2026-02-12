@@ -1,12 +1,12 @@
 
 import React, { useState, useEffect } from 'react';
-import { Product, ViewMode, AnalyticsData } from './types';
-import { NoonApiService } from './services/noonApiService';
-import Navbar from './components/Navbar';
-import ProductGrid from './components/ProductGrid';
-import Dashboard from './views/Dashboard';
-import MarketingAssistant from './views/MarketingAssistant';
-import { Layout, Shield, Loader2, RefreshCw, AlertCircle } from 'lucide-react';
+import { Product, ViewMode, AnalyticsData } from './types.ts';
+import { NoonApiService } from './services/noonApiService.ts';
+import Navbar from './components/Navbar.tsx';
+import ProductGrid from './components/ProductGrid.tsx';
+import Dashboard from './views/Dashboard.tsx';
+import MarketingAssistant from './views/MarketingAssistant.tsx';
+import { Layout, Shield, Loader2, RefreshCw, AlertCircle, CheckCircle } from 'lucide-react';
 
 const MOCK_ANALYTICS: AnalyticsData[] = [
   { date: 'Mon', visitors: 120, clicks: 15, sales: 2 },
@@ -38,6 +38,7 @@ const App: React.FC = () => {
       setProducts(data);
       setLastSync(new Date().toLocaleTimeString());
     } catch (err: any) {
+      console.error("App: Load products failed", err);
       setError(err.message || 'Failed to connect to Noon API');
     } finally {
       setIsLoading(false);
@@ -47,13 +48,13 @@ const App: React.FC = () => {
   const renderView = () => {
     if (products.length === 0 && !isLoading && !error) {
       return (
-        <div className="flex flex-col items-center justify-center py-20 text-center">
+        <div className="flex flex-col items-center justify-center py-20 text-center animate-fade-in">
           <AlertCircle className="w-12 h-12 text-gray-400 mb-4" />
           <h2 className="text-xl font-bold text-gray-900">No Products Found</h2>
-          <p className="text-gray-500 max-w-md mt-2">Your Noon account is connected, but we couldn't find any active items in your catalog. Ensure your products are "Live" on Noon.</p>
+          <p className="text-gray-500 max-w-md mt-2">Your Noon account is connected, but we couldn't find any active items in your catalog. Ensure your products are "Live" on the Noon Seller Center.</p>
           <button 
             onClick={loadProducts}
-            className="mt-6 px-6 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors"
+            className="mt-6 px-6 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-200"
           >
             Try Syncing Again
           </button>
@@ -64,19 +65,19 @@ const App: React.FC = () => {
     switch (currentView) {
       case ViewMode.STOREFRONT:
         return (
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 animate-fade-in">
              <div className="bg-indigo-600 rounded-3xl p-8 md:p-12 mb-12 relative overflow-hidden text-white shadow-2xl">
                <div className="relative z-10 max-w-2xl">
-                 <h1 className="text-4xl md:text-5xl font-extrabold mb-4 leading-tight">Your Direct Portal to Our Noon Store</h1>
-                 <p className="text-lg text-indigo-100 mb-8">Exclusive products, real-time stock updates, and lightning fast checkout through the official Noon.com marketplace.</p>
+                 <h1 className="text-4xl md:text-5xl font-extrabold mb-4 leading-tight">Official Seller Portal</h1>
+                 <p className="text-lg text-indigo-100 mb-8">Direct inventory synchronization from Noon.com. Browse our latest collection with live stock status.</p>
                  <div className="flex flex-wrap gap-4">
                     <div className="bg-white/20 backdrop-blur-md px-4 py-2 rounded-xl flex items-center text-sm font-semibold">
-                       <Shield className="w-4 h-4 mr-2" />
-                       Noon Verified
+                       <CheckCircle className="w-4 h-4 mr-2" />
+                       Noon API Verified
                     </div>
                     <div className="bg-white/20 backdrop-blur-md px-4 py-2 rounded-xl flex items-center text-sm font-semibold">
                        <RefreshCw className="w-4 h-4 mr-2" />
-                       Live Stock Sync
+                       Auto-Sync Active
                     </div>
                  </div>
                </div>
@@ -91,7 +92,7 @@ const App: React.FC = () => {
       case ViewMode.MARKETING:
         return <MarketingAssistant products={products} />;
       default:
-        return <div>View not implemented</div>;
+        return <div className="p-8 text-center text-gray-500">View coming soon...</div>;
     }
   };
 
@@ -108,19 +109,27 @@ const App: React.FC = () => {
           {isLoading ? (
             <div className="flex flex-col items-center justify-center py-40 space-y-4">
               <Loader2 className="w-12 h-12 text-indigo-600 animate-spin" />
-              <p className="text-gray-500 font-medium">Synchronizing with Noon Seller API...</p>
+              <p className="text-gray-500 font-medium">Reading Noon Seller API...</p>
             </div>
           ) : error ? (
-             <div className="bg-red-50 border border-red-200 rounded-2xl p-8 text-center max-w-2xl mx-auto my-20">
+             <div className="bg-red-50 border border-red-200 rounded-2xl p-8 text-center max-w-2xl mx-auto my-10 animate-fade-in shadow-sm">
                 <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-                <h2 className="text-xl font-bold text-red-900">API Connection Error</h2>
-                <p className="text-red-700 mt-2 mb-6">{error}</p>
-                <div className="text-left bg-white p-4 rounded-xl border border-red-100 text-sm text-gray-600 mb-6">
-                  <strong>Layman Tip:</strong> Check your Vercel Environment Variables. Ensure <code>NOON_APP_ID</code> matches your Key ID and <code>NOON_APP_KEY</code> is your Secret Key string.
+                <h2 className="text-xl font-bold text-red-900">Connection Interrupted</h2>
+                <p className="text-red-700 mt-2 mb-6 font-medium">{error}</p>
+                
+                <div className="text-left bg-white p-6 rounded-xl border border-red-100 text-sm text-gray-600 mb-6 shadow-inner">
+                  <h4 className="font-bold text-gray-900 mb-2">Troubleshooting Steps:</h4>
+                  <ul className="list-disc pl-5 space-y-2">
+                    <li>Go to Vercel Settings &gt; Environment Variables.</li>
+                    <li>Ensure <strong>NOON_APP_ID</strong> is exactly your <code>key_id</code> from the JSON.</li>
+                    <li>Ensure <strong>NOON_APP_KEY</strong> is the <code>Secret Key</code> you copied from the popup (not the JSON private key).</li>
+                    <li>Verify <strong>NOON_BUSINESS_UNIT</strong> is set to <code>UAE</code>.</li>
+                  </ul>
                 </div>
+                
                 <button 
                   onClick={loadProducts}
-                  className="px-8 py-3 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 transition-colors"
+                  className="px-8 py-3 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 transition-all shadow-lg shadow-red-200"
                 >
                   Retry Connection
                 </button>
@@ -139,11 +148,11 @@ const App: React.FC = () => {
             </div>
             <span className="text-xl font-bold text-gray-900">NoonSync Pro</span>
           </div>
-          <p className="text-gray-500 text-sm mb-4">Official Product Catalog Synchronization System</p>
+          <p className="text-gray-500 text-sm mb-4">The independent marketing engine for Noon.com Sellers</p>
           <div className="flex items-center justify-center space-x-6">
             <span className="text-xs text-gray-400 font-medium">Last Sync: {lastSync}</span>
             <div className="h-1 w-1 bg-gray-300 rounded-full"></div>
-            <span className="text-xs text-gray-400 font-medium uppercase">API Status: {error ? 'Offline' : 'Healthy'}</span>
+            <span className="text-xs text-gray-400 font-medium uppercase">Market: {process.env.NOON_BUSINESS_UNIT || 'UAE'}</span>
           </div>
         </div>
       </footer>
